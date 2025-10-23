@@ -22,7 +22,7 @@ float4 PS(VertexOut pIn) : SV_Target
     //return fragColor;
 
     //片元屏幕坐标
-    return float4(1, 1, 1, 0.5);
+
     float2 fragCoord = pIn.tex * g_Resolution.xy;
     
     // 相机运动 animaton

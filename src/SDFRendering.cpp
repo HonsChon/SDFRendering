@@ -3,6 +3,7 @@
 bool SDFRendering::InitPipeLine()
 {
 	m_CommandList = GetDevice()->createCommandList();
+	m_CommandList->open();
 	m_Device = GetDevice();
 
 	std::filesystem::path appShaderPath = app::GetDirectoryWithExecutable() / "shaders/SDFRendering" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
@@ -25,21 +26,58 @@ bool SDFRendering::InitPipeLine()
 		return false;
 	}
 
+	Vertex vertices[] = {
+	{ {-1, -1, 0},{0, 0}},
+	{ {1, -1, 0}, {1, 0}},
+	{ {-1, 1, 0}, {0, 1} },
+	{ {1, 1, 0}, {1, 1}},
+	};    //设置我们ps的计算范围
+
+	nvrhi::BufferDesc vbDesc;
+	vbDesc.byteSize = sizeof(Vertex) * 4;
+	vbDesc.debugName = "VertexBuffer";
+	vbDesc.isVertexBuffer = true;
+	vbDesc.initialState = nvrhi::ResourceStates::CopyDest;;
+
+	vertexBuffer = m_Device->createBuffer(vbDesc);
+	m_CommandList->beginTrackingBufferState(vertexBuffer, nvrhi::ResourceStates::CopyDest);
+	m_CommandList->writeBuffer(vertexBuffer, vertices, sizeof(vertices));
+	m_CommandList->setPermanentBufferState(vertexBuffer, nvrhi::ResourceStates::VertexBuffer);
+
+
+	uint indices[] = {0,2,1,2,3,1 };
+	indicesBuffer = m_Device->createBuffer(
+		nvrhi::BufferDesc()
+		.setByteSize(sizeof(indices))
+		.setDebugName("IndexBuffer")
+		.setIsIndexBuffer(true)
+		.setStructStride(sizeof(uint))
+		.setInitialState(nvrhi::ResourceStates::CopyDest)
+	);
+
+	m_CommandList->beginTrackingBufferState(indicesBuffer, nvrhi::ResourceStates::CopyDest);
+	m_CommandList->writeBuffer(indicesBuffer, indices, sizeof(indices));
+	m_CommandList->setPermanentBufferState(indicesBuffer, nvrhi::ResourceStates::IndexBuffer);
+
+
 
 	nvrhi::VertexAttributeDesc attributes[] = {
 	nvrhi::VertexAttributeDesc()
 		.setName("POSITION")
 		.setFormat(nvrhi::Format::RGB32_FLOAT)
 		.setOffset(0)
-		.setElementStride(sizeof(float3) + sizeof(float2)),
+		.setElementStride(sizeof(Vertex)),
 	nvrhi::VertexAttributeDesc()
 		.setName("TEXCOORD")
 		.setFormat(nvrhi::Format::RG32_FLOAT)
 		.setOffset(sizeof(float3))
-		.setElementStride(sizeof(float3) + sizeof(float2)),
+		.setElementStride(sizeof(Vertex)),
 	};
 
-	m_InputLayout = m_Device->createInputLayout(attributes, uint32_t(std::size(attributes)), nullptr);
+	m_InputLayout = m_Device->createInputLayout(attributes, uint32_t(std::size(attributes)), m_VertexShader);
+
+	m_CommandList->close();
+	GetDevice()->executeCommandList(m_CommandList);
 
 	return true;
 }
@@ -56,29 +94,11 @@ void SDFRendering::Render(nvrhi::IFramebuffer* framebuffer) {
 		pipelineDesc.VS = m_VertexShader;
 		pipelineDesc.PS = m_PixelShader;
 		pipelineDesc.renderState.depthStencilState.depthTestEnable = false;
+		pipelineDesc.primType = nvrhi::PrimitiveType::TriangleList;
 
 		m_GraphicsPipeline = m_Device->createGraphicsPipeline(pipelineDesc, framebuffer);
 
-		nvrhi::BufferDesc vbDesc;
-		vbDesc.byteSize = sizeof(Vertex) * vertices.size();
-		vbDesc.debugName = "VertexBuffer";
-		vbDesc.isVertexBuffer = true;
-		vbDesc.initialState = nvrhi::ResourceStates::VertexBuffer;
-		vbDesc.keepInitialState = true;
-		std::vector<int> indices = { 0,1,2,2,1,3 };
-		vertexBuffer = m_Device->createBuffer(vbDesc);
-		m_CommandList->writeBuffer(vertexBuffer, vertices.data(), vertices.size() * sizeof(Vertex));
-
-		indicesBuffer = m_Device->createBuffer(
-			nvrhi::BufferDesc()
-			.setByteSize(sizeof(int) * indices.size())
-			.setDebugName("IndexBuffer")
-			.setIsIndexBuffer(true)
-			.setInitialState(nvrhi::ResourceStates::IndexBuffer)
-			.setKeepInitialState(true)
-		);
-
-		m_CommandList->writeBuffer(indicesBuffer, indices.data(), indices.size() * sizeof(int));
+		
 	}
 
 
@@ -93,7 +113,7 @@ void SDFRendering::Render(nvrhi::IFramebuffer* framebuffer) {
 	state.bindings = { bindingSet };
 	state.framebuffer = framebuffer;
 	state.viewport.addViewportAndScissorRect(framebuffer->getFramebufferInfo().getViewport());
-	state.indexBuffer = nvrhi::IndexBufferBinding().setFormat(nvrhi::Format::R16_UINT);
+	state.indexBuffer = nvrhi::IndexBufferBinding().setFormat(nvrhi::Format::R32_UINT);
 	state.vertexBuffers.push_back(nvrhi::VertexBufferBinding());
 	state.indexBuffer.buffer = indicesBuffer;
 	state.vertexBuffers[0].buffer = vertexBuffer;

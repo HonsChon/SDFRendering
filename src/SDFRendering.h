@@ -47,13 +47,7 @@ public:
 		float2 uv;
 	};
 
-	std::vector<Vertex> vertices =
-	{
-		{ float3(- 1, -1, 0),float2(0, 0)},
-		{ float3( 1, -1, 0 ), float2(1, 0)},
-		{ float3(-1, 1, 0), float2(0, 1)},
-		{ float3(1, 1, 0), float2(1, 1)},
-	};    //设置我们ps的计算范围
+
 
 
 	bool InitPipeLine();
