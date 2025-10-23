@@ -46,7 +46,7 @@ endif()
 # Custom shader compilation using the agility SDK compiler rather than whatever is chosen during CMake config
 set_source_files_properties(SHADER_SOURCES FOLDER ${folder} PROPERTIES VS_TOOL_OVERRIDE "None") 
 add_custom_target(${project}_shaders DEPENDS ShaderMake SOURCES ${SHADER_SOURCES})
-set(DXC_PATH "F:/NetEase/MultipleLightShadow/dxc_2024/bin/x64/dxc.exe")
+set(DXC_PATH "F:/SDFRendering/SDFRendering/dxc_2024/bin/x64/dxc.exe")
 
 set(dxcCompilerCommand ShaderMake
     --embedPDB

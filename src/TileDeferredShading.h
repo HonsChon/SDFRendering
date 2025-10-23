@@ -418,7 +418,7 @@ public:
         m_RootFs->mount("/media", mediaDir);
         m_RootFs->mount("/shaders/donut", frameworkShaderDir);
 
-        std::filesystem::path m_SceneDir = "F:/NetEase/MultipleLightShadow/test_resource/bistro";
+      /*  std::filesystem::path m_SceneDir = "F:/NetEase/MultipleLightShadow/test_resource/bistro";
         
         std::vector<std::string>  m_SceneFilesAvailable = FindScenes(*m_NativeFs, m_SceneDir);
         
@@ -426,7 +426,7 @@ public:
         {
             log::fatal("No scene file found in media folder '%s'\n"
                 "Please make sure that folder contains valid scene files.", m_SceneDir.generic_string().c_str());
-        }
+        } */
         m_TextureCache = std::make_shared<TextureCache>(GetDevice(), m_NativeFs, nullptr);
 
         m_ShaderFactory = std::make_shared<ShaderFactory>(GetDevice(), m_RootFs, "/shaders");
@@ -436,7 +436,7 @@ public:
 
         SetAsynchronousLoadingEnabled(true);
 
-        BeginLoadingScene(m_NativeFs, "F:/NetEase/MultipleLightShadow/test_resource/bistro/bistro.gltf");
+     //   BeginLoadingScene(m_NativeFs, "F:/NetEase/MultipleLightShadow/test_resource/bistro/bistro.gltf");
     }
 
     virtual bool LoadScene(std::shared_ptr<IFileSystem> fs, const std::filesystem::path& fileName) override;
@@ -615,30 +615,9 @@ protected:
         ImGui::Checkbox("Material Events", &m_ui.EnableMaterialEvents);*/
         ImGui::Separator();
 
-        const auto& lights = m_app->GetScene()->GetSceneGraph()->GetLights();
+     //   const auto& lights = m_app->GetScene()->GetSceneGraph()->GetLights();
 
-        if (!lights.empty() && ImGui::CollapsingHeader("Lights"))
-        {
-            if (ImGui::BeginCombo("Select Light", m_SelectedLight ? m_SelectedLight->GetName().c_str() : "(None)"))
-            {
-                for (const auto& light : lights)
-                {
-                    bool selected = m_SelectedLight == light;
-                    ImGui::Selectable(light->GetName().c_str(), &selected);
-                    if (selected)
-                    {
-                        m_SelectedLight = light;
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-
-            if (m_SelectedLight)
-            {
-                app::LightEditor(*m_SelectedLight);
-            }
-        }
+     
 
         ImGui::TextUnformatted("Render Light Probe: ");
         uint32_t probeIndex = 1;
