@@ -14,20 +14,33 @@
 #include <wrl.h>
 #include <donut/render/GBuffer.h>
 
+#include <donut/app/ApplicationBase.h>
+#include <donut/engine/ShaderFactory.h>
+#include <donut/app/DeviceManager.h>
+#include <donut/core/log.h>
+#include <donut/core/vfs/VFS.h>
+#include <nvrhi/utils.h>
+
+using namespace donut;
+
 
 using namespace::std;
 using namespace::donut::engine;
 using namespace donut::math;
 using namespace donut::render;
+
 #include <donut/shaders/light_cb.h>
 #include <donut/shaders/view_cb.h>
 
 
-class SDFRendering
+class SDFRendering : public app::IRenderPass
 {
 
 public:
 
+	SDFRendering(app::DeviceManager* deviceManager) :IRenderPass(deviceManager),m_BindingSets(deviceManager->GetDevice()) {
+		
+	};
 	struct Vertex
 	{
 		float3 position;
@@ -36,18 +49,25 @@ public:
 
 	std::vector<Vertex> vertices =
 	{
-		{ { -1, -1, 0 },{ 0, 0 }},
-		{ {  1, -1, 0 }, { 1, 0 }},
-		{ {  -1, 1, 0 }, {0, 1 }},
-		{ { 1, 1, 0}, {1, 1}},
+		{ float3(- 1, -1, 0),float2(0, 0)},
+		{ float3( 1, -1, 0 ), float2(1, 0)},
+		{ float3(-1, 1, 0), float2(0, 1)},
+		{ float3(1, 1, 0), float2(1, 1)},
 	};    //设置我们ps的计算范围
 
-	SDFRendering(nvrhi::IDevice* device) :m_Device(device), m_BindingSets(device) {
 
+	bool InitPipeLine();
+	void Render(nvrhi::IFramebuffer* framebuffer) override;
+
+	void BackBufferResizing() override
+	{
+		m_Pipeline = nullptr;
 	}
 
-	void InitPipeLine(nvrhi::IFramebuffer* framebuffer, ShaderFactory& shaderFactory, nvrhi::CommandListHandle commandlist);
-	void Render(nvrhi::IFramebuffer* framebuffer);
+	void Animate(float fElapsedTimeSeconds) override
+	{
+		GetDeviceManager()->SetInformativeWindowTitle("g_WindowTitle");
+	}
 protected:
 	nvrhi::DeviceHandle m_Device;
 	nvrhi::ShaderHandle m_VertexShader;

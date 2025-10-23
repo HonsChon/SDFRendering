@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014-2024, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -19,53 +19,24 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+
+include(../donut/compileshaders.cmake)
 file(GLOB shaders "*.hlsl")
 file(GLOB sources "*.cpp" "*.h")
 
-set(project MultiLightShadow)
-set(folder " MultiLightShadow")
+set(project SDFRendering)
+set(folder "SDFRendering")
 
-#         
-source_group("Header Files" FILES ${HEADERS})
-source_group("Source Files" FILES ${SOURCES})
-source_group("hlsl" FILES ${HLSL_FILES})
-
-# Copy agility SDK bits to D3D12 folder right next to the executable
-set (D3D12_AGILITY_SDK_RUNTIME_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/D3D12")
-
-if (NOT EXISTS ${D3D12_AGILITY_SDK_RUNTIME_DIR})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${D3D12_AGILITY_SDK_RUNTIME_DIR})
-endif()
-
-if (NOT EXISTS "${D3D12_AGILITY_SDK_RUNTIME_DIR}/D3D12Core.dll" OR NOT EXISTS "${D3D12_AGILITY_SDK_RUNTIME_DIR}/D3D12SDKLayers.dll")
-    message(STATUS "Extracting Agility SDK runtime bits")
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_CURRENT_SOURCE_DIR}/AgilitySDK/d3d12_1.613.0.zip"
-        WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/D3D12")
-endif()
-
-# Custom shader compilation using the agility SDK compiler rather than whatever is chosen during CMake config
-set_source_files_properties(SHADER_SOURCES FOLDER ${folder} PROPERTIES VS_TOOL_OVERRIDE "None") 
-add_custom_target(${project}_shaders DEPENDS ShaderMake SOURCES ${SHADER_SOURCES})
-set(DXC_PATH "F:/SDFRendering/SDFRendering/dxc_2024/bin/x64/dxc.exe")
-
-set(dxcCompilerCommand ShaderMake
-    --embedPDB
-    --config "${CMAKE_CURRENT_SOURCE_DIR}/shaders.cfg"
-    --out "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${project}/dxil"
-    --platform DXIL
-    --binaryBlob --outputExt .bin
-    -I ${DONUT_SHADER_INCLUDE_DIR}
-    --compiler "${DXC_PATH}"
-    --shaderModel 6_8
+donut_compile_shaders_all_platforms(
+    TARGET ${project}_shaders
+    PROJECT_NAME "SDFRendering"
+    CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/shaders.cfg
+    FOLDER ${folder}
+    OUTPUT_BASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${project}
 )
 
-add_custom_command(TARGET ${project}_shaders PRE_BUILD COMMAND ${dxcCompilerCommand})
-set_target_properties(${project}_shaders PROPERTIES FOLDER ${folder})
-
-
 add_executable(${project} WIN32 ${sources})
-target_include_directories(${project} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/AgilitySDK/include")
-target_link_libraries(${project} donut_app donut_engine donut_render)
+target_link_libraries(${project} donut_app donut_engine)
 add_dependencies(${project} ${project}_shaders)
 set_target_properties(${project} PROPERTIES FOLDER ${folder})
 
