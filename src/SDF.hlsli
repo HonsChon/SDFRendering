@@ -1,3 +1,11 @@
+cbuffer ConstantBuffer : register(b0)
+{
+    float4 g_Time;
+    float4 g_Resolution;
+    int4 g_Switch; //一些设置，分别对应开启关闭环境光遮蔽、方向光、天空光等
+    float2 g_Factor; //存储着rayMarching最大步进次数和阴影的软硬程度
+}
+
 float dot2(in float2 v)
 {
     return dot(v, v);
@@ -104,7 +112,7 @@ float opUnion(float d1, float d2)
     return min(d1, d2);
 }
 
-float opSubtraction(float d1, float d2) 
+float opSubtraction(float d1, float d2)   //保留 “在d1内但不在内” 的区域
 {
     return max(d1, -d2);
 }
@@ -148,7 +156,7 @@ float opRound(float sdf, float thickness)
     return sdf - thickness;
 }
 
-float2 map(float3 pos)
+float2 map(float3 pos)  //计算sdf值
 {
     // 地板
     // float2 res = float2(pos.y, 0.0);

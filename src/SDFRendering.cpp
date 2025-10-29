@@ -14,7 +14,9 @@ bool SDFRendering::InitPipeLine()
 	nvrhi::BindingLayoutDesc bindingLayoutDesc = nvrhi::BindingLayoutDesc()
 		.setRegisterSpace(0)
 		.setVisibility(nvrhi::ShaderType::All)
-		.addItem(nvrhi::BindingLayoutItem::PushConstants(0, sizeof(float2)));
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(0))
+		.addItem(nvrhi::BindingLayoutItem::Sampler(0))
+		.addItem(nvrhi::BindingLayoutItem::Texture_SRV(0));
 
 	bindingLayoutDesc.visibility = nvrhi::ShaderType::Pixel;
 	m_BindingLayout = m_Device->createBindingLayout(bindingLayoutDesc);
@@ -25,6 +27,33 @@ bool SDFRendering::InitPipeLine()
 	if (!m_VertexShader || !m_PixelShader) {
 		return false;
 	}
+
+	auto texture = textureCache->LoadTextureFromFile(
+		"F:/图形学习/SDFRendering/SDFRendering/src/Texture/noise0.jpg",
+		true, nullptr, m_CommandList
+	);
+	m_Texture = texture->texture;
+
+	nvrhi::SamplerDesc samplerDesc;
+	samplerDesc.setAllFilters(true); // 启用线性过滤（min/mag/mip）
+	samplerDesc.addressU = nvrhi::SamplerAddressMode::Wrap;
+	samplerDesc.addressV = nvrhi::SamplerAddressMode::Wrap;
+	samplerDesc.addressW = nvrhi::SamplerAddressMode::Wrap;
+	samplerDesc.mipBias = 0.0f;
+	samplerDesc.maxAnisotropy = 1.0f;
+	samplerDesc.borderColor = nvrhi::Color(0.0f);
+	m_Sampler = GetDevice()->createSampler(samplerDesc);
+
+	m_ConstantBuffer = m_Device->createBuffer(nvrhi::BufferDesc().setByteSize(sizeof(RenderConstants)).
+		setStructStride(sizeof(RenderConstants)).
+		setInitialState(nvrhi::ResourceStates::ConstantBuffer).
+		setIsConstantBuffer(true).
+		setKeepInitialState(true).
+		setIsVolatile(true).
+		setDebugName("ConstantBuffer").
+		setMaxVersions(16));
+
+	
 
 	Vertex vertices[] = {
 	{ {-1, -1, 0},{0, 0}},
@@ -101,10 +130,18 @@ void SDFRendering::Render(nvrhi::IFramebuffer* framebuffer) {
 		
 	}
 
-
+	RenderConstants renderConstants;
+	renderConstants.g_Time = float4(delta, 0, 0, 0);
+	renderConstants.g_Resolution = float4((float)framebuffer->getFramebufferInfo().width, (float)framebuffer->getFramebufferInfo().height, 0, 0);
+	renderConstants.g_Switch = int4(1, 1, 1, 1);
+	renderConstants.g_Factor = float2(256.0f, 20.0f);
+	delta = delta + 0.001f;
+	m_CommandList->writeBuffer(m_ConstantBuffer, &renderConstants, sizeof(RenderConstants));
 
 	nvrhi::BindingSetDesc bindingSetDesc;
-	bindingSetDesc.addItem(nvrhi::BindingSetItem::PushConstants(0, sizeof(float2)));
+	bindingSetDesc.addItem(nvrhi::BindingSetItem::ConstantBuffer(0, m_ConstantBuffer))
+		.addItem(nvrhi::BindingSetItem::Sampler(0,m_Sampler))
+		.addItem(nvrhi::BindingSetItem::Texture_SRV(0,m_Texture));
 
 	nvrhi::BindingSetHandle bindingSet = m_BindingSets.GetOrCreateBindingSet(bindingSetDesc, m_BindingLayout);
 
@@ -119,7 +156,9 @@ void SDFRendering::Render(nvrhi::IFramebuffer* framebuffer) {
 	state.vertexBuffers[0].buffer = vertexBuffer;
 
 	m_CommandList->setGraphicsState(state);
-	m_CommandList->setPushConstants(float2(float(framebuffer->getFramebufferInfo().width), float(framebuffer->getFramebufferInfo().height)), sizeof(float2));
+
+
+
 	m_CommandList->drawIndexed(nvrhi::DrawArguments().setVertexCount(6));
 
 	m_CommandList->close();

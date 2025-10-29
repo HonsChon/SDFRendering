@@ -9,15 +9,7 @@ struct VertexOut
     float2 tex : TEXCOORD;
 };
 
-cbuffer ConstantBuffer : register(b0)
-{
-    float4 g_Time;
-    float4 g_Resolution;
-    int4 g_Frame;
-    float4x4 g_Camera;
-    int4 g_Switch;
-    float4 g_Factor;
-}
+
 
 // 光线投射
 float2 raycast(float3 ro, float3 rd, int mnum)
@@ -147,10 +139,24 @@ float4 PS(VertexOut pIn) : SV_Target
     // 焦距
     const float fl = 3;
         
-    float3 ro = g_Camera._14_24_34;
+// 相机运动 animaton
+    float an = 0.5 * (g_Time.x - 10.0);
+    // 相机位置 ray origin 
+    float3 ro = float3(4.0 * cos(an), 0.4, 4.0 * sin(an));
+    // 目标位置 lookat-target
+    float3 ta = float3(0.0, 0.0, 0.0);
+    // 代表相机朝向的forward vector,相机坐标系的Z轴
+    float3 ww = normalize(ta - ro);
+    // 与up vector叉积，得到相机坐标系的X轴
+    float3 uu = normalize(cross(ww, float3(0.0, 1.0, 0.0)));
+    // 相机坐标系的Y轴
+    float3 vv = normalize(cross(uu, ww));
+
+    float3 tot = float3(0.0, 0.0, 0.0);
     
-    // 光线方向
-    float3 rd = mul((float3x3) g_Camera, normalize(float3(p, fl)));
+
+	// 相机射线方向
+    float3 rd = normalize(p.x * uu + p.y * vv + 1.5 * ww);
     
     // 渲染
     float3 col = render(ro, rd);
