@@ -226,10 +226,10 @@ float calcSoftshadow(in float3 ro, in float3 rd, float mint, float maxt, float k
     float ph = 1e20;
     for (float t = mint; t < maxt;)
     {
-        float h = map(ro + rd * t);
+        float h = map(ro + rd * t); //获取当前点到最近表面的距离
         if (h < 0.001)
             return 0.0;
-        float y = h * h / (2.0 * ph);
+        float y = h * h / (2.0 * ph); 
         float d = sqrt(h * h - y * y);
         res = min(res, k * d / max(0.0, t - y));
         ph = h;
@@ -239,7 +239,7 @@ float calcSoftshadow(in float3 ro, in float3 rd, float mint, float maxt, float k
 }
 
 // 计算法线
-float3 calcNormal(float3 p, float t)
+float3 calcNormal(float3 p, float t)   //对于SDF来说，法线可以通过对距离场进行数值梯度计算得到
 {
     float eps = 0.0001;
     eps += eps / 10 * t;
